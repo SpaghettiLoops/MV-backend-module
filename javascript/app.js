@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+app.use(express.json());
 
 const data = [
     {
@@ -59,9 +60,9 @@ app.get('/snippets/:id', (req, res) => {
     res.json(snippet);
 })
 
-app.get('snippets/:language', (req, res) => { 
+app.get('/snippets/language/:language', (req, res) => { 
     const language = req.params.language;
-    const snippets = data.find(snippet => snippet.language == language);
+    const snippets = data.filter(snippet => snippet.language.toLowerCase() == language.toLowerCase());
     res.json(snippets);
 })
 
