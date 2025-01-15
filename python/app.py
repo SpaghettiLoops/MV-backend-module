@@ -1,79 +1,56 @@
 from flask import Flask, request, jsonify
+import json
+
+# Load data from data.json
+with open('data.json', 'r') as file:
+    data = json.load(file)
 
 app = Flask(__name__)
 
-data = [
-    {
-      "id": 1,
-      "language": "Python",
-      "code": "print('Hello, World!')"
-    },
-    {
-      "id": 2,
-      "language": "Python",
-      "code": "def add(a, b):\n    return a + b"
-    },
-    {
-      "id": 3,
-      "language": "Python",
-      "code": "class Circle:\n    def __init__(self, radius):\n        self.radius = radius\n\n    def area(self):\n        return 3.14 * self.radius ** 2"
-    },
-    {
-      "id": 4,
-      "language": "JavaScript",
-      "code": "console.log('Hello, World!');"
-    },
-    {
-      "id": 5,
-      "language": "JavaScript",
-      "code": "function multiply(a, b) {\n    return a * b;\n}"
-    },
-    {
-      "id": 6,
-      "language": "JavaScript",
-      "code": "const square = num => num * num;"
-    },
-    {
-      "id": 7,
-      "language": "Java",
-      "code": "public class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}"
-    },
-    {
-      "id": 8,
-      "language": "Java",
-      "code": "public class Rectangle {\n    private int width;\n    private int height;\n\n    public Rectangle(int width, int height) {\n        this.width = width;\n        this.height = height;\n    }\n\n    public int getArea() {\n        return width * height;\n    }\n}"
-    }
-  ]
-
-# POST - create a new one
+# POST - create a new snippet
 @app.route('/snippets', methods=['POST'])
 def create_snippet():
-    new_snippet = request.get_json()  
-    data.append(new_snippet)  
-    return '', 201  
+  try:
+    new_snippet = request.get_json()
+    if new_snippet.get('language') and new_snippet.get('code') and new_snippet.get('id'):
+      data.append(new_snippet)
+      return jsonify(data), 201
+    else:
+      return jsonify({'message': 'Parameters missing, please try again with a complete request'}), 404  
+  except:
+    return jsonify({'message': 'Invalid request'}), 400
 
-# GET - get all
+# GET - GET all snippets
 @app.route('/snippets', methods=['GET'])
 def get_all_snippets():
+  try:
     return jsonify(data)  
+  except:
+    return jsonify({'message': 'Invalid request'}), 400
 
 # GET - get a snippet by id e.g snippets/4
 @app.route('/snippets/<int:id>', methods=['GET'])
 def get_snippet_by_id(id):
-    snippet = next((s for s in data if s['id'] == id), None)
+  try:
+    snippet = next((snippet for snippet in data if snippet['id'] == id), None)
     if snippet:
-        return jsonify(snippet)
-    return jsonify({'message': 'Snippet not found'}), 404
+      return jsonify(snippet)
+    else:
+      return jsonify({'message': 'Snippet not found'}), 404
+  except:
+    return jsonify({'message': 'Invalid request'}), 400
 
 # GET get a snippet by language e.g. snippets/python
 @app.route('/snippets/<language>', methods=['GET'])
 def get_snippets_by_language(language):
-    language = language.lower()
-    snippets = [snippet for snippet in data if snippet['language'].lower() == language]
-    
+  try:
+    snippets = [snippet for snippet in data if snippet['language'].lower() == language.lower()]
     if snippets:
-        return jsonify(snippets)
-    return jsonify({'message': 'No snippets found for this language.'}), 404
-
+      return jsonify(snippets)
+    else:
+      return jsonify({'message': 'No snippets found for this language.'}), 404
+  except:
+    return jsonify({'message': 'Invalid request'}), 400
+  
 if __name__ == '__main__':
     app.run(debug=True, port=3000)
