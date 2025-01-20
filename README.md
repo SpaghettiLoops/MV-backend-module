@@ -40,3 +40,27 @@ cd to the correct place
 - http://localhost:3000/snippets
 - http://localhost:3000/snippets/:id
 - http://localhost:3000/snippets/language/python
+
+# PYTHON BCRYPT EXAMPLE
+
+import bcrypt
+
+password = "password123"  # example password
+
+password_bytes = password.encode("utf-8")  # convert password to bytes
+
+salt = bcrypt.gensalt()  # generate a salt
+
+hashed_password = bcrypt.hashpw(password_bytes, salt)  # hash the password
+
+print("Hashed password:", hashed_password)  # output the hashed password with salt
+
+# To verify the password later
+password_check = "password123"  # example password to verify
+password_check_bytes = password_check.encode("utf-8")
+
+# Check if the entered password matches the hashed password
+if bcrypt.checkpw(password_check_bytes, hashed_password):
+    print("Password match!")
+else:
+    print("Password does not match.")
