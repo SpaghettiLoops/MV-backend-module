@@ -13,34 +13,31 @@ with open('data.json', 'r') as file:
 
 app = Flask(__name__)
 
+# function to decrypt the code
+def decrypt_code(encrypted_code_str):
+  encrypted_code = encrypted_code_str.encode("utf-8") # convert string to bytes
+  decrypted_code = cipher_suite.decrypt(encrypted_code) # decrypt the code
+  return decrypted_code.decode("utf-8") # return as a string
+
+def encrypt_code(code_str):
+  code_to_bytes = code_str.encode("utf-8") # convert string to bytes
+  encrypted_code = cipher_suite.encrypt(code_to_bytes) # encrypt the code
+  return encrypted_code.decode("utf-8") # return as a string
+
 # POST - create a new snippet
 @app.route('/snippets', methods=['POST'])
 def create_snippet():
   try:
     new_snippet = request.get_json()
     if new_snippet.get('language') and new_snippet.get('code') and new_snippet.get('id'):
-
-      # encrypt the code
-      code_bytes = new_snippet.get("code").encode("utf-8") # convert to bytes
-      encrypted_code = cipher_suite.encrypt(code_bytes) # encrypt the code
-
-      new_snippet["code"] = encrypted_code.decode("utf-8") # store as string 
-
+      new_snippet["code"] = encrypt_code(new_snippet.get('code')) # store as string 
       data.append(new_snippet) # store new snippet
-
-      return jsonify(data), 201
+      return jsonify(new_snippet), 201
     else:
-      return jsonify({'message': 'Parameters missing, please try again with a complete request'}), 404  
+      return jsonify({'message': 'Parameters missing, please try again with a complete request'}), 400  
   except:
     return jsonify({'message': 'Invalid request'}), 400
   
-
-# function to decrypt the code
-def decrypt_code(encrypted_code_str):
-  encrypted_code = encrypted_code_str.encoded("utf-8") # convert string back to bytes
-  decrypted_code = cipher_suite.decrypt(encrypted_code) # decrypt the code
-  return decrypted_code("utf-8") # return as a string
-
 # GET - GET all snippets
 @app.route('/snippets', methods=['GET'])
 def get_all_snippets():
@@ -107,7 +104,7 @@ def create_user():
 
       data.append(user) # store the user in the data list 
 
-      return jsonify({"messsage": "User created successfully"}), 201
+      return jsonify({"messsage": f"{user} created successfully"}), 201
     else:
       return jsonify({"message": "Email and password required"}), 400
   except Exception as e:
