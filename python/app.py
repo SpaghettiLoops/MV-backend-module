@@ -2,6 +2,12 @@ from flask import Flask, request, jsonify
 import json
 import bcrypt 
 from cryptography.fernet import Fernet
+import jwt
+import datetime # to choose how long token expires after 
+from functools import wraps
+
+# secret key for encoding/decoding JWT
+SECRET_KEY = "your secret key" # use a more secure key in prod stuff 
 
 # generate encryption key 
 key = Fernet.generate_key()
@@ -23,6 +29,30 @@ def encrypt_code(code_str):
   code_to_bytes = code_str.encode("utf-8") # convert string to bytes
   encrypted_code = cipher_suite.encrypt(code_to_bytes) # encrypt the code
   return encrypted_code.decode("utf-8") # return as a string
+
+# function to make a token required 
+def token_required(f): 
+  @wraps(f)
+  def decorated_function(*args, **kwargs):
+        token = None
+        # Check if the token is in the request headers
+        if 'x-access-token' in request.headers:
+            token = request.headers['x-access-token']
+        # If no token, return an error
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 403
+        try:
+            # Decode the token and validate
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            current_user = next((user for user in data if user['email'] == data['email']), None)
+            if not current_user:
+                return jsonify({'message': 'Token is invalid or expired'}), 403
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Token is invalid'}), 401
+        return f(current_user, *args, **kwargs)
+  return decorated_function
 
 # POST - create a new snippet
 @app.route('/snippets', methods=['POST'])
@@ -109,6 +139,36 @@ def create_user():
       return jsonify({"message": "Email and password required"}), 400
   except Exception as e:
     return jsonify({"message": f"error creating user {str(e)}"}), 400
+
+# log in route that issues JWT
+@app.route("/login", methods=["POST"])
+def login():
+   try:
+      auth_data = request.get_json()
+      if auth_data.get("email") and auth_data.get("password"):
+         email = auth_data["email"]
+         password = auth_data["password"]
+
+         user = next((user for user in data if user["email"] == email), None) # if user email and password is correct 
+         if user and bcrypt.checkpw(password.encode("utf-8"), user["password"].encode("utf-8")):
+            
+            # generate jwt
+            expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+            token = jwt.encode({
+               "email": email,
+               "exp": expiration_time
+            }, SECRET_KEY, algorithm="HS256")
+
+            return jsonify({"token": token}), 200
+         else:
+            return jsonify({"message": "Invalid credentials"}), 400
+         
+      else: 
+         return jsonify("message": "Email and password are required"), 400
+      
+   except Exception as e:
+      return jsonify({"message": f"Error: {str(e)}"}), 400
+
   
 # retrive all user info
 @app.route("/user", methods=["GET"])
